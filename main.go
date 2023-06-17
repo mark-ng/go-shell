@@ -80,6 +80,21 @@ func main() {
 		}
 		// Handle Shell builtins
 		switch commandsArr[0][0] {
+		case "cd":
+			var targetPath string
+			if len(commandsArr[0]) > 2 {
+				fmt.Println("cd: too many argument")
+				continue
+			} else if len(commandsArr[0]) == 1 {
+				targetPath = os.Getenv("HOME")
+			} else {
+				targetPath = commandsArr[0][1]
+			}
+			err := os.Chdir(targetPath)
+			if err != nil {
+				fmt.Println(err)
+			}
+			continue
 		case "quit":
 			os.Exit(0)
 		case "help":
@@ -135,11 +150,16 @@ func main() {
 		}
 
 		for i := 0; i < len(cmdArr); i++ {
-			cmdArr[i].Start()
+			if err := cmdArr[i].Start(); err != nil {
+				fmt.Println(cmdArr[i], err)
+				break
+			}
 		}
-
 		for i := 0; i < len(cmdArr); i++ {
-			cmdArr[i].Wait()
+			if err := cmdArr[i].Wait(); err != nil {
+				fmt.Println(cmdArr[i], err)
+				break
+			}
 			if i != len(cmdArr)-1 {
 				pipeW[i].Close()
 			}
