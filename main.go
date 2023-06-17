@@ -26,6 +26,22 @@ func handler(s os.Signal) {
 	}
 }
 
+func parseCommandLine(commandLine string) [][]string {
+	commands := strings.Split(commandLine, "|")
+	var commandsArr [][]string
+
+	for _, v := range commands {
+		tokens := strings.Fields(v)
+		var tokensArr []string
+		for _, t := range tokens {
+			tokensArr = append(tokensArr, t)
+		}
+		commandsArr = append(commandsArr, tokensArr)
+	}
+
+	return commandsArr
+}
+
 func main() {
 	// Handle SIGINT
 	sigs := make(chan os.Signal, 1)
@@ -55,15 +71,14 @@ func main() {
 		}
 
 		// Parse Input
-		args := strings.Fields(input)
-		argsLen := len(args)
+		commandsArr := parseCommandLine(input)
 
 		// Handle Empty Input
-		if argsLen == 0 {
+		if len(commandsArr) == 1 && len(commandsArr[0]) == 0 {
 			continue
 		}
 		// Handle Shell builtins
-		switch args[0] {
+		switch commandsArr[0][0] {
 		case "quit":
 			os.Exit(0)
 		case "help":
@@ -74,7 +89,7 @@ func main() {
 		}
 
 		// Handle Program Execution
-		childP := exec.Command(args[0], args[1:]...)
+		childP := exec.Command(commandsArr[0][0], commandsArr[0][1:]...)
 		childP.Stdin = os.Stdin
 		childP.Stdout = os.Stdout
 		childP.Stderr = os.Stderr
