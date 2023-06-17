@@ -6,7 +6,7 @@
 - [x] Run child processes
 - [x] Signal Handling
 - [x] Pipe operation
-- [ ] change directory
+- [x] Change directory
 
 ## Usage
 
