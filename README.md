@@ -5,7 +5,8 @@
 - [x] Shell builtins
 - [x] Run child processes
 - [x] Signal Handling
-- [ ] Pipe operation
+- [x] Pipe operation
+- [ ] change directory
 
 ## Usage
 

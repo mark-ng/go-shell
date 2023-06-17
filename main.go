@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -88,21 +89,65 @@ func main() {
 			continue
 		}
 
-		// Handle Program Execution
-		childP := exec.Command(commandsArr[0][0], commandsArr[0][1:]...)
-		childP.Stdin = os.Stdin
-		childP.Stdout = os.Stdout
-		childP.Stderr = os.Stderr
+		if len(commandsArr) == 1 {
+			// Handle Program Execution
+			childP := exec.Command(commandsArr[0][0], commandsArr[0][1:]...)
+			childP.Stdin = os.Stdin
+			childP.Stdout = os.Stdout
+			childP.Stderr = os.Stderr
 
-		if err := childP.Start(); err != nil {
-			fmt.Printf("Failed to start process %v\n", err)
+			if err := childP.Start(); err != nil {
+				fmt.Printf("Failed to start process %v\n", err)
+				continue
+			}
+			if err := childP.Wait(); err != nil {
+				fmt.Printf("Command failed: %v\n", err)
+				continue
+			}
+			childProcess = nil
 			continue
 		}
-		if err := childP.Wait(); err != nil {
-			fmt.Printf("Command failed: %v\n", err)
-			continue
+
+		var buffer bytes.Buffer
+
+		var cmdArr []*exec.Cmd
+		var pipeR []*io.PipeReader
+		var pipeW []*io.PipeWriter
+		for i := 0; i < len(commandsArr); i++ {
+			cmd := exec.Command(commandsArr[i][0], commandsArr[i][1:]...)
+			cmdArr = append(cmdArr, cmd)
+
+			if i == 0 {
+				r, w := io.Pipe()
+				cmd.Stdout = w
+				pipeR = append(pipeR, r)
+				pipeW = append(pipeW, w)
+			} else if i != len(commandsArr)-1 {
+				r, w := io.Pipe()
+				cmd.Stdin = pipeR[i-1]
+				cmd.Stdout = w
+				pipeR = append(pipeR, r)
+				pipeW = append(pipeW, w)
+			} else {
+				cmd.Stdin = pipeR[i-1]
+				cmd.Stdout = &buffer
+			}
 		}
 
-		childProcess = nil
+		for i := 0; i < len(cmdArr); i++ {
+			cmdArr[i].Start()
+		}
+
+		for i := 0; i < len(cmdArr); i++ {
+			cmdArr[i].Wait()
+			if i != len(cmdArr)-1 {
+				pipeW[i].Close()
+			}
+			if i != 0 {
+				pipeR[i-1].Close()
+			}
+		}
+
+		io.Copy(os.Stdout, &buffer)
 	}
 }
